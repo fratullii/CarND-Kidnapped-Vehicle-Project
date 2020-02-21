@@ -60,11 +60,10 @@ class ParticleFilter {
   /**
    * dataAssociation Finds which observations correspond to which landmarks 
    *   (likely by using a nearest-neighbors data association).
-   * @param predicted Vector of predicted landmark observations
-   * @param observations Vector of landmark observations
+   * @param particle_obs LandmarkObst to be associated to a landmark
+   * @param map_landmarks Landmark in a given maps
    */
-  void dataAssociation(std::vector<LandmarkObs> predicted, 
-                       std::vector<LandmarkObs>& observations);
+  void dataAssociation(LandmarkObs observation, const vector<Map::single_landmark_s> &landmarks);
   
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
@@ -94,13 +93,33 @@ class ParticleFilter {
   void SetAssociations(Particle& particle, const std::vector<int>& associations,
                        const std::vector<double>& sense_x, 
                        const std::vector<double>& sense_y);
-
   /**
    * initialized Returns whether particle filter is initialized yet or not.
    */
   const bool initialized() const {
     return is_initialized;
   }
+
+  /**
+   * Switch from the vehicle's coordinate system to the map's cooordinate system
+   * 
+   * 
+   * @param obs_map Reference to the new LandmarkObs object
+   * @param obs_veh Reference to the LandmarkObs object with coordinates in the vehicle's system
+   * @param particle Reference to the particle objects for which the map coordinates must be computed
+   */
+  void changeCoordinates(LandmarkObs &obs_map, const LandmarkObs &obs_veh, const Particle &particle);
+
+  /**
+   * Assign to a vector only the landmarks within the sensor range of the vehicle, assuming it is
+   * in the particle position
+   * 
+   * @param range_landmarks Vector of LandmarksObs objects to be initialize within this method
+   * @param map_landmarks Map class containing map landmarks
+   * @param range Sensor range [m]
+   */
+  void selectLandmarks(vector<Map::single_landmark_s> &range_landmarks, const Particle &particle, 
+                        const Map &map_landmarks, double range);
 
   /**
    * Used for obtaining debugging information related to particles.

@@ -59,6 +59,33 @@ inline double dist(double x1, double y1, double x2, double y2) {
 }
 
 /**
+ * Computes the square of the Euclidean distance between two 2D points.
+ * @param (x1,y1) x and y coordinates of first point
+ * @param (x2,y2) x and y coordinates of second point
+ * @output square of the Euclidean distance between two 2D points
+ */
+inline double dist2(double x1, double y1, double x2, double y2) {
+  return (pow(x2 - x1, 2)+ pow(y2 - y1, 2));
+}
+
+inline double multiv_prob(double x_obs, double y_obs,
+                          double mu_x, double mu_y,
+                          double sig_x, double sig_y) {
+
+  // calculate normalization term
+  double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+
+  // calculate exponent
+  double exponent = (pow(x_obs - mu_x, 2) / (2 * pow(sig_x, 2)))
+                    + (pow(y_obs - mu_y, 2) / (2 * pow(sig_y, 2)));
+
+  // calculate weight using normalization terms and exponent
+  double prob = gauss_norm * exp(-exponent);
+
+  return prob;
+}
+
+/**
  * Computes the error between ground truth and particle filter data.
  * @param (gt_x, gt_y, gt_theta) x, y and theta of ground truth
  * @param (pf_x, pf_y, pf_theta) x, y and theta of particle filter
