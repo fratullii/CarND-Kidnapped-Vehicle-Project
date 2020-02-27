@@ -108,7 +108,7 @@ default_random_engine gen;
 
 }
 
-void ParticleFilter::dataAssociation(LandmarkObs &observation, const vector<Map::single_landmark_s> &landmarks) {
+void ParticleFilter::dataAssociation(LandmarkObs &observation, const Map &landmarks_map) {
   /**
    * TODO: Find the predicted measurement that is closest to each 
    *   observed measurement and assign the observed measurement to this 
@@ -120,9 +120,11 @@ void ParticleFilter::dataAssociation(LandmarkObs &observation, const vector<Map:
   //  cout << "dataAssociation started" << endl; // DEBUGF
    // Implementing naive nearest neighbor search
    observation.id = 0;
-   double min_dist = dist2(observation.x, observation.y, landmarks[0].x_f, landmarks[0].y_f);
-   for(int i = 1; i < landmarks.size(); ++i){
-     double land_obs_dist = dist2(observation.x, observation.y, landmarks[i].x_f, landmarks[i].y_f);
+   double min_dist = dist2(observation.x, observation.y, 
+                          landmarks_map.landmark_list[0].x_f, landmarks_map.landmark_list[0].y_f);
+   for(int i = 1; i < landmarks_map.landmark_list.size(); ++i){
+     double land_obs_dist = dist2(observation.x, observation.y, 
+                                landmarks_map.landmark_list[0].x_f, landmarks_map.landmark_list[0].y_f);
      if (land_obs_dist < min_dist){
        observation.id = i;
        min_dist = land_obs_dist;
@@ -154,21 +156,21 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   for(int i = 0; i < particles.size(); ++i){
 
     particles[i].weight = 1;
-    std::vector<Map::single_landmark_s> range_landmarks;
-    selectLandmarks(range_landmarks, particles[i], map_landmarks, sensor_range);
+    Map particle_landmarks;
+    selectLandmarks(particle_landmarks, particles[i], map_landmarks, sensor_range);
     // cout << "Observation size " << observations.size() << endl; // DEBUGF
     // cout << "map_landmarks: " << map_landmarks.landmark_list.size() << endl; // DEBUGF
     // cout << "filtered landmarks: " << range_landmarks.size() << endl; // DEBUGF
     for(int j=0; j < observations.size(); ++j){
       LandmarkObs particle_obs;
       changeCoordinates(particle_obs, observations[j], particles[i]);
-      dataAssociation(particle_obs, range_landmarks);
+      dataAssociation(particle_obs, particle_landmarks);
       // cout << "Read within range landmarks " << endl; // DEBUGF
       // cout << particle_obs.id << endl; // DEBUGF
       // cout << "Successful" << endl; // DEBUGF
       particles[i].weight *= multiv_prob(particle_obs.x, particle_obs.y,
-                                         range_landmarks[particle_obs.id].x_f,
-                                         range_landmarks[particle_obs.id].y_f,
+                                         particle_landmarks.landmark_list[particle_obs.id].x_f,
+                                         particle_landmarks.landmark_list[particle_obs.id].y_f,
                                          std_landmark[0], std_landmark[1]);
       // cout << "multiv_prob ok" << endl; // DEBUGF
       // cout << "weight " << particles[i].weight << endl; // DEBUGF
@@ -228,19 +230,19 @@ void ParticleFilter::changeCoordinates(LandmarkObs &obs_map, const LandmarkObs &
   // cout << "changeCoordinates started" << endl; // DEBUGF
   double cos_theta = cos(particle.theta);
   double sin_theta = sin(particle.theta);
-  obs_map.x = particle.x + cos_theta*obs_veh.x + sin_theta*obs_veh.y;
-  obs_map.y = particle.y - sin_theta*obs_veh.x + cos_theta*obs_veh.y;c
+  obs_map.x = cos_theta*obs_veh.x - sin_theta*obs_veh.y;
+  obs_map.y = sin_theta*obs_veh.x + cos_theta*obs_veh.y;
   // cout << "changeCoordinates completed" << endl; // DEBUGF
 }
 
-void ParticleFilter::selectLandmarks(vector<Map::single_landmark_s> &range_landmarks, const Particle &particle,
+void ParticleFilter::selectLandmarks(Map &range_landmarks, const Particle &particle,
                     const Map &map_landmarks, double range){
 
   // cout << "selectLandmarks started" << endl; // DEBUGF
-  for(const Map::single_landmark_s landmark : map_landmarks.landmark_list){
+  for(Map::single_landmark_s landmark : map_landmarks.landmark_list){
 
     if(dist2(particle.x, particle.y, landmark.x_f, landmark.y_f) <= pow(range, 2)){
-      range_landmarks.push_back(landmark);
+      range_landmarks.landmark_list.push_back(landmark);
     }
 
   }

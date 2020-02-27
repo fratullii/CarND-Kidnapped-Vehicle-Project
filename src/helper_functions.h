@@ -65,7 +65,7 @@ inline double dist(double x1, double y1, double x2, double y2) {
  * @output square of the Euclidean distance between two 2D points
  */
 inline double dist2(double x1, double y1, double x2, double y2) {
-  return (pow(x2 - x1, 2)+ pow(y2 - y1, 2));
+  return (pow(x2 - x1, 2) + pow(y2 - y1, 2));
 }
 
 inline double multiv_prob(double x_obs, double y_obs,

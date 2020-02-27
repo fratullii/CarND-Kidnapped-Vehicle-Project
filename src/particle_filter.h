@@ -64,7 +64,7 @@ class ParticleFilter {
    * @param particle_obs LandmarkObst to be associated to a landmark
    * @param map_landmarks Landmark in a given maps
    */
-  void dataAssociation(LandmarkObs &observation, const std::vector<Map::single_landmark_s> &landmarks);
+  void dataAssociation(LandmarkObs &observation, const Map &landmarks_map);
   
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
@@ -119,7 +119,7 @@ class ParticleFilter {
    * @param map_landmarks Map class containing map landmarks
    * @param range Sensor range [m]
    */
-  void selectLandmarks(std::vector<Map::single_landmark_s> &range_landmarks, const Particle &particle, 
+  void selectLandmarks(Map &, const Particle &particle, 
                         const Map &map_landmarks, double range);
 
   /**
