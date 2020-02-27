@@ -46,7 +46,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]){
   normal_distribution<double> dist_y (y, std[1]);
   normal_distribution<double> dist_theta (theta, std[2]);
 
-  num_particles = 1000;  // TODO: Set the number of particles
+  num_particles = 400;  // TODO: Set the number of particles
   for (int i = 0; i < num_particles; ++i) {
     
     // Sample from the normal distribution
@@ -57,15 +57,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]){
     
     particles.push_back(temp_particle);
 
-    // DEBUGF
-    // cout << "x = " << particles[i].x << endl; // DEBUG_F
-    // cout << "y = " << particles[i].y << endl;
-    // cout << "theta = " << particles[i].theta << endl;
   }
   
   is_initialized = true;
   
-  cout << "Initialization completed" << endl; // DEBUGF
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[],
@@ -78,8 +73,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    **/
 
-// cout << "Prediction started" << endl; // DEBUGF
-double vel_yaw_ratio = velocity / yaw_rate;
+double vel_yaw_ratio;
+yaw_rate != 0 ? vel_yaw_ratio = velocity / yaw_rate : vel_yaw_ratio = velocity;
+
 default_random_engine gen;
 
   for (int i = 0; i < num_particles; ++i){
@@ -89,22 +85,17 @@ default_random_engine gen;
     particles[i].y += vel_yaw_ratio * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate * delta_t));
     particles[i].theta += yaw_rate * delta_t;
 
-    // cout << "Bike model completed" << endl; // DEBUGF
-
     // Add random gaussian noise by sampling from a normal distribution 
     
-    normal_distribution<double> dist_x (particles[i].x, std_pos[0]);
-    normal_distribution<double> dist_y (particles[i].y, std_pos[1]);
-    normal_distribution<double> dist_theta (particles[i].theta, std_pos[2]);
+    normal_distribution<double> dist_x (0., std_pos[0]);
+    normal_distribution<double> dist_y (0., std_pos[1]);
+    normal_distribution<double> dist_theta (0., std_pos[2]);
 
-    particles[i].x = dist_x(gen);
-    particles[i].y = dist_y(gen);
-    particles[i].theta = dist_theta(gen);
-
-    // cout << "Add noise completed" << endl; // DEBUGF
+    particles[i].x += dist_x(gen);
+    particles[i].y += dist_y(gen);
+    particles[i].theta += dist_theta(gen);
 
   }
-  // cout << "Prediction completed" << endl; // DEBUGF
 
 }
 
@@ -117,7 +108,7 @@ void ParticleFilter::dataAssociation(LandmarkObs &observation, const Map &landma
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    **/
-  //  cout << "dataAssociation started" << endl; // DEBUGF
+
    // Implementing naive nearest neighbor search
    observation.id = 0;
    double min_dist = dist2(observation.x, observation.y, 
@@ -130,7 +121,6 @@ void ParticleFilter::dataAssociation(LandmarkObs &observation, const Map &landma
        min_dist = land_obs_dist;
      }
    }
-  //  cout << "dataAssociation completed" << endl; // DEBUGF
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -149,36 +139,31 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
-  // cout << "updateWeights started" << endl; // DEBUGF
 
   weights.clear();
 
   for(int i = 0; i < particles.size(); ++i){
 
-    particles[i].weight = 1;
+    particles[i].weight = 1.;
+
+    // Filter landmarks out of particle range
     Map particle_landmarks;
     selectLandmarks(particle_landmarks, particles[i], map_landmarks, sensor_range);
-    // cout << "Observation size " << observations.size() << endl; // DEBUGF
-    // cout << "map_landmarks: " << map_landmarks.landmark_list.size() << endl; // DEBUGF
-    // cout << "filtered landmarks: " << range_landmarks.size() << endl; // DEBUGF
+
     for(int j=0; j < observations.size(); ++j){
+
       LandmarkObs particle_obs;
       changeCoordinates(particle_obs, observations[j], particles[i]);
       dataAssociation(particle_obs, particle_landmarks);
-      // cout << "Read within range landmarks " << endl; // DEBUGF
-      // cout << particle_obs.id << endl; // DEBUGF
-      // cout << "Successful" << endl; // DEBUGF
       particles[i].weight *= multiv_prob(particle_obs.x, particle_obs.y,
                                          particle_landmarks.landmark_list[particle_obs.id].x_f,
                                          particle_landmarks.landmark_list[particle_obs.id].y_f,
                                          std_landmark[0], std_landmark[1]);
-      // cout << "multiv_prob ok" << endl; // DEBUGF
-      // cout << "weight " << particles[i].weight << endl; // DEBUGF
+
     }
+
     weights.push_back(particles[i].weight);
   }
-
-  // cout << "updateWeights completed" << endl; // DEBUGF
 }
 
 void ParticleFilter::resample() {
@@ -188,7 +173,7 @@ void ParticleFilter::resample() {
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
-  // cout << "resample completed" << endl; // DEBUGF
+
 
   default_random_engine gen;
   discrete_distribution<int> dist(weights.begin(), weights.end());
@@ -208,7 +193,6 @@ void ParticleFilter::resample() {
   }
   particles = new_particles;
 
-  // cout << "resample completed" << endl; // DEBUGF
 }
 
 void ParticleFilter::SetAssociations(Particle& particle, 
@@ -227,18 +211,16 @@ void ParticleFilter::SetAssociations(Particle& particle,
 
 void ParticleFilter::changeCoordinates(LandmarkObs &obs_map, const LandmarkObs &obs_veh, const Particle &particle){
 
-  // cout << "changeCoordinates started" << endl; // DEBUGF
   double cos_theta = cos(particle.theta);
   double sin_theta = sin(particle.theta);
   obs_map.x = cos_theta*obs_veh.x - sin_theta*obs_veh.y;
   obs_map.y = sin_theta*obs_veh.x + cos_theta*obs_veh.y;
-  // cout << "changeCoordinates completed" << endl; // DEBUGF
+
 }
 
 void ParticleFilter::selectLandmarks(Map &range_landmarks, const Particle &particle,
                     const Map &map_landmarks, double range){
 
-  // cout << "selectLandmarks started" << endl; // DEBUGF
   for(Map::single_landmark_s landmark : map_landmarks.landmark_list){
 
     if(dist2(particle.x, particle.y, landmark.x_f, landmark.y_f) <= pow(range, 2)){
@@ -246,7 +228,6 @@ void ParticleFilter::selectLandmarks(Map &range_landmarks, const Particle &parti
     }
 
   }
-  // cout << "selectLandmarks completed" << endl; // DEBUGF
 }
 
 string ParticleFilter::getAssociations(Particle best) {

@@ -26,7 +26,7 @@ struct Particle {
 };
 
 
-class ParticleFilter {  
+class ParticleFilter {
  public:
   // Constructor
   // @param num_particles Number of particles
