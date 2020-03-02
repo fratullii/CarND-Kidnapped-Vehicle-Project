@@ -40,7 +40,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]){
   *   (and others in this file).
   */
 
-  num_particles = 500;
+  num_particles = 100;
   weights.reserve(num_particles);
 
   // Define normal distributions around gps initial measurements
@@ -79,8 +79,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    **/
 
-// cout << "Prediction started" << endl; // DEBUGF
-double vel_yaw_ratio = velocity / yaw_rate;
+// double vel_yaw_ratio = velocity / yaw_rate;
+double vel_yaw_ratio;
+fabs(yaw_rate) < .00001 ? vel_yaw_ratio = (velocity / yaw_rate) : vel_yaw_ratio = velocity;
 default_random_engine gen;
 
   for (int i = 0; i < num_particles; ++i){
@@ -89,8 +90,6 @@ default_random_engine gen;
     particles[i].x += vel_yaw_ratio * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
     particles[i].y += vel_yaw_ratio * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate * delta_t));
     particles[i].theta += yaw_rate * delta_t;
-
-    // cout << "Bike model completed" << endl; // DEBUGF
 
     // Add random gaussian noise by sampling from a normal distribution
 
@@ -102,10 +101,7 @@ default_random_engine gen;
     particles[i].y = dist_y(gen);
     particles[i].theta = dist_theta(gen);
 
-    // cout << "Add noise completed" << endl; // DEBUGF
-
   }
-  // cout << "Prediction completed" << endl; // DEBUGF
 
 }
 
@@ -129,12 +125,11 @@ void ParticleFilter::dataAssociation(LandmarkObs &observation, const vector<Map:
 
     double land_obs_dist = dist2(observation.x, observation.y, landmark.x_f, landmark.y_f);
 
-    // if distance is less than the min: update the min.
+    // if distance is less than the min: update the min
     if (land_obs_dist < min_dist){
       observation.id = landmark.id_i;
       min_dist = land_obs_dist;
     }
-    
   }
 }
 
@@ -160,6 +155,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
   for (auto & particle: particles){
 
+    // Reset particle's weight
+    double gprob = 1.;
+
     // Step 0: find all landmarks within sensor range for each particle
     vector<Map::single_landmark_s> wrange_landmarks;
     selectLandmarks(wrange_landmarks, particle,  map_landmarks, sensor_range);
@@ -174,14 +172,20 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       // Step 2: set association between the observations and the predictions
       dataAssociation(map_obs, wrange_landmarks);
 
-      // Step 3: calculatae the particle's final weight
-      
+      // Step 3: calculate the particle's final weight
+      for(const auto & landmark: wrange_landmarks){
 
+        if (landmark.id_i == map_obs.id){
+          gprob *= multiv_prob(map_obs.x, map_obs.y,
+                              landmark.x_f, landmark.y_f,
+                              std_landmark[0], std_landmark[1]);
+        }
+      }
     }
-
+    particle.weight = gprob;
+    weights.push_back(particle.weight);
+    cout << "particle.weight: " << particle.weight << endl;
   }
-
-  // cout << "updateWeights completed" << endl; // DEBUGF
 }
 
 void ParticleFilter::resample() {
