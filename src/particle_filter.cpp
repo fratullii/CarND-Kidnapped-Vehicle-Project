@@ -40,31 +40,32 @@ void ParticleFilter::init(double x, double y, double theta, double std[]){
   *   (and others in this file).
   */
 
+  num_particles = 500;
+  weights.reserve(num_particles);
+
   // Define normal distributions around gps initial measurements
   default_random_engine gen;
   normal_distribution<double> dist_x (x, std[0]);
   normal_distribution<double> dist_y (y, std[1]);
   normal_distribution<double> dist_theta (theta, std[2]);
 
-  num_particles = 1000;  // TODO: Set the number of particles
+
   for (int i = 0; i < num_particles; ++i) {
-    
+
     // Sample from the normal distribution
     Particle temp_particle;
     temp_particle.x = dist_x(gen);
     temp_particle.y = dist_y(gen);
     temp_particle.theta = dist_theta(gen);
-    
-    particles.push_back(temp_particle);
+    temp_particle.weight = 1;
 
-    // DEBUGF
-    // cout << "x = " << particles[i].x << endl; // DEBUG_F
-    // cout << "y = " << particles[i].y << endl;
-    // cout << "theta = " << particles[i].theta << endl;
+    particles.push_back(temp_particle);
+    weights.push_back(temp_particle.weight);
+
   }
-  
+
   is_initialized = true;
-  
+
   cout << "Initialization completed" << endl; // DEBUGF
 }
 
@@ -229,7 +230,7 @@ void ParticleFilter::changeCoordinates(LandmarkObs &obs_map, const LandmarkObs &
   double cos_theta = cos(particle.theta);
   double sin_theta = sin(particle.theta);
   obs_map.x = particle.x + cos_theta*obs_veh.x + sin_theta*obs_veh.y;
-  obs_map.y = particle.y - sin_theta*obs_veh.x + cos_theta*obs_veh.y;c
+  obs_map.y = particle.y - sin_theta*obs_veh.x + cos_theta*obs_veh.y;
   // cout << "changeCoordinates completed" << endl; // DEBUGF
 }
 
