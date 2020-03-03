@@ -79,27 +79,31 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    **/
 
-// double vel_yaw_ratio = velocity / yaw_rate;
-double vel_yaw_ratio;
-fabs(yaw_rate) < .00001 ? vel_yaw_ratio = (velocity / yaw_rate) : vel_yaw_ratio = velocity;
-default_random_engine gen;
+  bool yaw_rate_zero = fabs(yaw_rate) < .0001;
+  double vel_yaw_ratio = (velocity / yaw_rate);
+
+  default_random_engine gen;
+  normal_distribution<double> dist_x (0, std_pos[0]);
+  normal_distribution<double> dist_y (0, std_pos[1]);
+  normal_distribution<double> dist_theta (0, std_pos[2]);
 
   for (int i = 0; i < num_particles; ++i){
 
     // Apply bicycle motion model to predict particle state
-    particles[i].x += vel_yaw_ratio * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
-    particles[i].y += vel_yaw_ratio * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate * delta_t));
-    particles[i].theta += yaw_rate * delta_t;
+    if (!yaw_rate_zero){
+      particles[i].x += vel_yaw_ratio * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
+      particles[i].y += vel_yaw_ratio * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate * delta_t));
+      particles[i].theta += yaw_rate * delta_t;
+    } else {
+      // Apply linear model if yaw rate = 0
+      particles[i].x += velocity * delta_t * cos(particles[i].theta);
+      particles[i].y += velocity * delta_t * sin(particles[i].theta);
+    }
 
     // Add random gaussian noise by sampling from a normal distribution
-
-    normal_distribution<double> dist_x (particles[i].x, std_pos[0]);
-    normal_distribution<double> dist_y (particles[i].y, std_pos[1]);
-    normal_distribution<double> dist_theta (particles[i].theta, std_pos[2]);
-
-    particles[i].x = dist_x(gen);
-    particles[i].y = dist_y(gen);
-    particles[i].theta = dist_theta(gen);
+    particles[i].x += dist_x(gen);
+    particles[i].y += dist_y(gen);
+    particles[i].theta += dist_theta(gen);
 
   }
 
@@ -184,7 +188,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     }
     particle.weight = gprob;
     weights.push_back(particle.weight);
-    cout << "particle.weight: " << particle.weight << endl;
+    // cout << "particle.weight: " << particle.weight << endl;
   }
 }
 
